@@ -168,9 +168,29 @@
     .tb-btn { width: 48px; height: 44px; font-size: 19px; }
     .panel h2 { font-size: 1.1rem; padding: 14px 0 12px; }
     .sm-item { padding: 13px 14px; font-size: 1rem; }
-    .sm-item .sm-head { font-size: .85rem; }
+    #startMenu .sm-head { font-size: .85rem; }
     #taskbar { height: calc(54px + env(safe-area-inset-bottom, 0px)); padding-bottom: env(safe-area-inset-bottom, 0px); }
     #startMenu { bottom: calc(66px + env(safe-area-inset-bottom, 0px)); }
+  }
+  @media (max-width: 480px) {
+    #desktop { padding: 44px 8px 74px; }
+    header { padding: 12px 14px; gap: 8px; }
+    h1 { font-size: 1.15rem; }
+    header p { font-size: .78rem; }
+    .phase-badge { font-size: .8rem; padding: 5px 10px; }
+    .panel { padding: 0 10px 12px; margin-bottom: 10px; }
+    .panel h2 { font-size: 1rem; padding: 11px 0 9px; }
+    .stat .v { font-size: 1rem; }
+    #taskbar { gap: 6px; padding-left: 8px; padding-right: 8px; }
+    #tbPhase { display: none; }
+    #startMenuBtn { padding: 9px 14px; }
+    .modal .box { padding: 18px 14px; margin: 10px; }
+    #toast { left: 10px; right: 10px; max-width: none; }
+    .tb-item { font-size: .78rem; padding: 5px 8px; }
+  }
+  @media (max-height: 420px) {
+    #taskbar { height: 44px; }
+    #startMenu { bottom: 52px; }
   }
 </style>
 </head>
