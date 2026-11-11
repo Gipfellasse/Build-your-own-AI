@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>AI Empire: From Garage to AGi</title>
+<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/build/three.min.js"></script>
 <style>
   :root {
     --bg: #0b0f19; --card: #1e293b; --border: #334155;
@@ -157,6 +158,14 @@
   #bluescreen .code { font-family: ui-monospace, monospace; margin-top: 20px; opacity: .8; font-size: .85rem; }
   #screensaver { position: fixed; inset: 0; z-index: 80; background: #000; display: none; overflow: hidden; }
   #ssEmoji { position: absolute; font-size: 70px; }
+
+  #view3d { position: fixed; inset: 0; z-index: 55; display: none; background: #0a1020; }
+  #view3d canvas { display: block; }
+  #v3dBar { position: absolute; top: 0; left: 0; right: 0; display: flex; justify-content: space-between; align-items: center;
+    padding: 10px 14px; background: rgba(2,6,23,.85); border-bottom: 1px solid var(--border); z-index: 2; backdrop-filter: blur(8px); }
+  #v3dHint { position: absolute; bottom: 12px; left: 50%; transform: translateX(-50%); font-size: .78rem; color: var(--muted);
+    background: rgba(2,6,23,.8); border: 1px solid var(--border); border-radius: 8px; padding: 6px 12px; z-index: 2; white-space: nowrap; }
+  #v3dClose { background: var(--bad); color: #fff; border: none; border-radius: 6px; padding: 8px 16px; font-weight: 700; cursor: pointer; }
 </style>
 </head>
 <body class="phase-1">
@@ -344,6 +353,7 @@
   <button id="startMenuBtn">🪟 Start</button>
   <div class="tb-item" id="tbPhase">Phase 1: Die Garage</div>
   <div class="tb-spacer"></div>
+  <button class="tb-btn" id="view3dBtn" title="3D-Basis">🏢</button>
   <button class="tb-btn" id="muteBtn" title="Ton an/aus">🔊</button>
   <button class="tb-btn" id="fsBtn" title="Vollbild (F)">⛶</button>
   <div class="tb-item" id="tbClock">Tag 1</div>
@@ -355,6 +365,14 @@
   <button class="sm-item" id="smMute">🔊 Ton an/aus</button>
   <button class="sm-item" id="smFullscreen">⛶ Vollbild an/aus</button>
   <button class="sm-item" id="smAbout">ℹ️ Über das Spiel</button>
+</div>
+
+<div id="view3d">
+  <div id="v3dBar">
+    <div><b style="color:var(--accent)">🏢 Deine Basis in 3D</b><span id="v3dPhase" style="font-size:.8rem;color:var(--muted);margin-left:10px"></span></div>
+    <button id="v3dClose">✕ Schließen</button>
+  </div>
+  <div id="v3dHint">Ziehen = drehen · Mausrad / Pinch = Zoom</div>
 </div>
 
 <div id="toast"><div class="tt" id="toastTitle"></div><div class="td" id="toastDesc"></div></div>
@@ -1355,5 +1373,247 @@ setInterval(updateClock, 1000);
 updateClock();
 boot();
 </script>
+<script>
+(function () {
+  var open = false, inited = false;
+  var renderer, scene, camera, group;
+  var yaw = 0.8, pitch = 0.5, radius = 38;
+  var dragging = false, lastX = 0, lastY = 0, lastInput = 0, pinchDist = 0;
+  var blinkers = [], fans = [], rafId = 0, lastBlink = 0, syncTimer = 0, lastKey = "";
+
+  var overlay = document.getElementById("view3d");
+  var phaseLabel = document.getElementById("v3dPhase");
+  var PHASE_NAMES = ["Garage", "B\u00fcro & Rechenhof", "Datacenter"];
+
+  function mat(color, emissive) {
+    var m = new THREE.MeshLambertMaterial({ color: color });
+    if (emissive) { m.emissive = new THREE.Color(emissive); m.emissiveIntensity = 0.7; blinkers.push(m); }
+    return m;
+  }
+  function box(w, h, d, color, x, y, z, emissive) {
+    var m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat(color, emissive));
+    m.position.set(x, y, z);
+    group.add(m);
+    return m;
+  }
+  function rack(x, z, color) {
+    var m = box(1.1, 2.2, 0.9, color || 0x1f2937, x, 1.1, z);
+    box(1.2, 0.08, 1.0, 0x22c55e, x, 2.26, z, emissiveOn());
+    return m;
+  }
+  function emissiveOn() { return 0x22ff88; }
+  function fan(x, y, z, r) {
+    var g = new THREE.Group();
+    var cyl = new THREE.Mesh(new THREE.CylinderGeometry(r * 0.25, r * 0.25, 0.25, 8), mat(0x64748b));
+    cyl.rotation.z = Math.PI / 2;
+    g.add(cyl);
+    for (var i = 0; i < 3; i++) {
+      var blade = new THREE.Mesh(new THREE.BoxGeometry(0.12, r, 0.1), mat(0x94a3b8));
+      blade.position.y = 0;
+      blade.rotation.x = (i * Math.PI * 2) / 3;
+      blade.position.set(0, 0, 0);
+      blade.rotation.y = (i * Math.PI * 2) / 3;
+      g.add(blade);
+    }
+    g.position.set(x, y, z);
+    g.rotation.x = Math.PI / 2;
+    group.add(g);
+    fans.push(g);
+    return g;
+  }
+
+  function buildGarage() {
+    box(10, 5, 8, 0x3f4a5a, 0, 2.5, -6);
+    var roof = new THREE.Mesh(new THREE.ConeGeometry(7.6, 3, 4), mat(0x8a4b3a));
+    roof.position.set(0, 6.5, -6);
+    roof.rotation.y = Math.PI / 4;
+    group.add(roof);
+    box(2.4, 3, 0.2, 0x2b3340, 0, 1.5, -1.95);
+    box(4.5, 0.9, 0.3, 0xfbbf24, 0, 5.4, -1.9, 0xffaa00);
+    var n = Math.min(24, S.gpus);
+    for (var i = 0; i < n; i++) {
+      var row = Math.floor(i / 6), col = i % 6;
+      rack(-8 + col * 2.6, 2.5 + row * 3.2, 0x1f2937);
+    }
+    for (var c = 0; c < Math.min(8, S.cooling - 1); c++) {
+      var cb = box(1.4, 1.4, 1.4, 0x334155, 9 + (c % 4) * 2.4, 0.7, 2 + Math.floor(c / 4) * 2.6);
+      fan(cb.position.x, 1.5, cb.position.z, 0.5);
+    }
+    var tf = Math.min(3, Math.floor(S.maxPowerBonus / 500));
+    for (var t = 0; t < tf; t++) {
+      var cyl = new THREE.Mesh(new THREE.CylinderGeometry(0.9, 1.1, 2.6, 10), mat(0x475569));
+      cyl.position.set(-10 + t * 2.8, 1.3, 8);
+      group.add(cyl);
+    }
+  }
+
+  function buildOffice() {
+    box(14, 10, 10, 0x33415c, 0, 5, -10);
+    for (var f = 0; f < 4; f++) {
+      for (var w = 0; w < 5; w++) {
+        var lit = Math.random() < 0.6;
+        box(1.6, 1.2, 0.15, lit ? 0xffd166 : 0x1e293b, -5.2 + w * 2.6, 2 + f * 2.3, -4.9, lit ? 0xffcc55 : null);
+      }
+    }
+    box(8, 4, 8, 0x2a3247, 14, 2, -10);
+    var n = Math.min(40, Math.floor(computeTotal() / 5));
+    for (var i = 0; i < n; i++) {
+      var row = Math.floor(i / 8), col = i % 8;
+      rack(6 + col * 2.4, 3 + row * 3.4, 0x1f2937);
+    }
+    for (var c = 0; c < Math.min(6, S.cooling - 1); c++) {
+      var cb = box(1.5, 1.5, 1.5, 0x334155, -12 + c * 2.6, 0.75, 3);
+      fan(cb.position.x, 1.6, cb.position.z, 0.55);
+    }
+  }
+
+  function buildDataCenter() {
+    for (var b = 0; b < 2; b++) {
+      var hall = box(26, 7, 10, 0x2a2450, b === 0 ? -9 : 10, 3.5, -8);
+      box(26.2, 0.3, 0.3, 0xa855f7, hall.position.x, 6.6, -2.9, 0xa855f7);
+      box(26.2, 0.3, 0.3, 0xa855f7, hall.position.x, 6.6, -13.1, 0xa855f7);
+    }
+    var n = Math.min(60, Math.floor(computeTotal() / 4));
+    for (var i = 0; i < n; i++) {
+      var half = i < n / 2 ? 0 : 1, idx = i % 30;
+      var row = Math.floor(idx / 10), col = idx % 10;
+      rack((half === 0 ? -20 : -1) + col * 2.2, -12 + row * 3, 0x17122e);
+    }
+    for (var t = 0; t < 2; t++) {
+      var tw = new THREE.Mesh(new THREE.CylinderGeometry(1.6, 2.2, 6, 10), mat(0x3b3560));
+      tw.position.set(t === 0 ? -14 : 16, 3, 6);
+      group.add(tw);
+      fan(tw.position.x, 6.4, tw.position.z, 1.2);
+    }
+    for (var c = 0; c < Math.min(10, S.cooling); c++) {
+      var cb = box(1.6, 1.6, 1.6, 0x334155, -20 + c * 4.4, 0.8, 10);
+      fan(cb.position.x, 1.7, cb.position.z, 0.6);
+    }
+  }
+
+  function build() {
+    while (group.children.length) group.remove(group.children[0]);
+    blinkers = []; fans = [];
+    var ground = new THREE.Mesh(new THREE.BoxGeometry(90, 1, 90), mat(0x232a33));
+    ground.position.y = -0.5;
+    group.add(ground);
+    var grid = new THREE.GridHelper(90, 30, 0x334155, 0x2a3341);
+    grid.position.y = 0.01;
+    group.add(grid);
+    if (S.phase === 1) buildGarage();
+    else if (S.phase === 2) buildOffice();
+    else buildDataCenter();
+    lastKey = syncKey();
+  }
+
+  function syncKey() {
+    return [S.phase, S.gpus, S.cooling, S.maxPowerBonus, Math.floor(computeTotal() / 5)].join("|");
+  }
+
+  function updateCamera() {
+    camera.position.set(
+      Math.sin(yaw) * Math.cos(pitch) * radius,
+      Math.max(4, Math.sin(pitch) * radius),
+      Math.cos(yaw) * Math.cos(pitch) * radius
+    );
+    camera.lookAt(0, 3, 0);
+  }
+
+  function loop(t) {
+    if (!open) return;
+    rafId = requestAnimationFrame(loop);
+    if (t - lastInput > 4000) yaw += 0.0016;
+    if (t - lastBlink > 600) {
+      lastBlink = t;
+      for (var i = 0; i < blinkers.length; i++) blinkers[i].emissiveIntensity = 0.25 + Math.random() * 0.9;
+    }
+    for (var f = 0; f < fans.length; f++) fans[f].rotation.z += 0.12;
+    updateCamera();
+    renderer.render(scene, camera);
+  }
+
+  function init() {
+    renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    overlay.appendChild(renderer.domElement);
+    scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x0a1020);
+    scene.fog = new THREE.Fog(0x0a1020, 60, 160);
+    camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 500);
+    scene.add(new THREE.HemisphereLight(0xbfd8ff, 0x1a2030, 0.9));
+    var sun = new THREE.DirectionalLight(0xffffff, 0.8);
+    sun.position.set(20, 40, 10);
+    scene.add(sun);
+    group = new THREE.Group();
+    scene.add(group);
+    bindControls();
+    window.addEventListener("resize", onResize);
+    inited = true;
+  }
+
+  function bindControls() {
+    var el = renderer.domElement;
+    el.addEventListener("pointerdown", function (e) {
+      dragging = true; lastX = e.clientX; lastY = e.clientY; lastInput = performance.now();
+    });
+    window.addEventListener("pointermove", function (e) {
+      if (!dragging) return;
+      yaw += (e.clientX - lastX) * 0.006;
+      pitch = Math.min(1.35, Math.max(0.12, pitch + (e.clientY - lastY) * 0.004));
+      lastX = e.clientX; lastY = e.clientY; lastInput = performance.now();
+    });
+    window.addEventListener("pointerup", function () { dragging = false; });
+    el.addEventListener("wheel", function (e) {
+      e.preventDefault();
+      radius = Math.min(90, Math.max(12, radius + e.deltaY * 0.03));
+      lastInput = performance.now();
+    }, { passive: false });
+    el.addEventListener("touchmove", function (e) {
+      if (e.touches.length === 2) {
+        var d = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+        if (pinchDist) radius = Math.min(90, Math.max(12, radius + (pinchDist - d) * 0.08));
+        pinchDist = d;
+        lastInput = performance.now();
+      }
+    }, { passive: true });
+    el.addEventListener("touchend", function () { pinchDist = 0; });
+  }
+
+  function onResize() {
+    if (!inited) return;
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+  }
+
+  function openView() {
+    overlay.style.display = "block";
+    open = true;
+    if (typeof THREE === "undefined") {
+      phaseLabel.textContent = "3D-Bibliothek konnte nicht geladen werden (Internet n\u00f6tig)";
+      return;
+    }
+    if (!inited) init();
+    build();
+    phaseLabel.textContent = "Phase " + S.phase + " \u2014 " + (PHASE_NAMES[S.phase - 1] || "") + " \u00b7 " + S.gpus + " GPUs";
+    if (!rafId) rafId = requestAnimationFrame(loop);
+  }
+
+  function closeView() {
+    overlay.style.display = "none";
+    open = false;
+    if (rafId) { cancelAnimationFrame(rafId); rafId = 0; }
+  }
+
+  document.getElementById("view3dBtn").addEventListener("click", openView);
+  document.getElementById("v3dClose").addEventListener("click", closeView);
+  syncTimer = setInterval(function () {
+    if (!open || !inited) return;
+    if (syncKey() !== lastKey) build();
+  }, 2000);
+})();
+</script>
 </body>
+
 </html>

@@ -15,6 +15,7 @@ Eine Management-&-Tycoon-Simulation als einzelne `index.html` — im Look eines 
 - **Ethik-Entscheidungen**: Dialoge mit Konsequenzen für Geld & Reputation
 - **Geheimprojekt**: Quanten-Kern (+50% Trainingstempo)
 - **11 Achievements**, Statistiken, Firmenwert-Chart, Endrang beim AGI-Sieg
+- **3D-Basis-Ansicht** (🏢-Button in der Taskleiste): drehbare & zoombare 3D-Welt, die mit dem Spielstand wächst — Garage mit GPU-Racks, Büro mit beleuchteten Fenstern & Serverhof, Datacenter mit Leuchtstreifen & Kühltürmen (Three.js, braucht Internet)
 - **Sound**: komplett per WebAudio erzeugt (Boot-Chime, Klicks, Alarm, Server-Surren, Fanfare) — Mute-Button in der Taskleiste
 - **Autosave** im Browser (localStorage)
 
