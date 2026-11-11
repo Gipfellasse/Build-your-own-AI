@@ -2,7 +2,7 @@
 <html lang="de">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>AI Empire: From Garage to AGi</title>
 <style>
   :root {
@@ -157,6 +157,21 @@
   #bluescreen .code { font-family: ui-monospace, monospace; margin-top: 20px; opacity: .8; font-size: .85rem; }
   #screensaver { position: fixed; inset: 0; z-index: 80; background: #000; display: none; overflow: hidden; }
   #ssEmoji { position: absolute; font-size: 70px; }
+  /* iPad / Touch */
+  body { overscroll-behavior: none; -webkit-tap-highlight-color: transparent; }
+  button, .dicon, .sm-item, .tb-btn { touch-action: manipulation; -webkit-user-select: none; user-select: none; }
+  .panel h2 { touch-action: none; -webkit-user-select: none; user-select: none; }
+  button:active, .sm-item:active, .dicon:active, .tb-btn:active { opacity: .75; }
+  @media (pointer: coarse) {
+    button { min-height: 44px; padding: 11px 16px; font-size: .95rem; }
+    .min-btn { min-height: 38px; min-width: 40px; padding: 0 13px; font-size: 15px; }
+    .tb-btn { width: 48px; height: 44px; font-size: 19px; }
+    .panel h2 { font-size: 1.1rem; padding: 14px 0 12px; }
+    .sm-item { padding: 13px 14px; font-size: 1rem; }
+    .sm-item .sm-head { font-size: .85rem; }
+    #taskbar { height: calc(54px + env(safe-area-inset-bottom, 0px)); padding-bottom: env(safe-area-inset-bottom, 0px); }
+    #startMenu { bottom: calc(66px + env(safe-area-inset-bottom, 0px)); }
+  }
 </style>
 </head>
 <body class="phase-1">
@@ -1216,8 +1231,15 @@ function init() {
 // ---------- Desktop shell ----------
 function toggleFullscreen() {
   try {
-    if (document.fullscreenElement) document.exitFullscreen();
-    else document.documentElement.requestFullscreen();
+    var root = document.documentElement;
+    var fsEl = document.fullscreenElement || document.webkitFullscreenElement;
+    if (fsEl) {
+      (document.exitFullscreen || document.webkitExitFullscreen).call(document);
+    } else {
+      var req = root.requestFullscreen || root.webkitRequestFullscreen;
+      if (req) req.call(root);
+      else toast("Vollbild wird von diesem Browser nicht unterst\u00fctzt", "iPad-Tipp: Zum Home-Bildschirm wischen \u2014 Safari merkt sich die Seite dann im Vollbild");
+    }
   } catch (e) {}
 }
 function updateClock() {
@@ -1276,6 +1298,7 @@ document.querySelectorAll(".panel").forEach(panel => {
     panel.style.transform = "translate(" + dx + "px," + dy + "px)";
   });
   h2.addEventListener("pointerup", () => { dragging = false; });
+  h2.addEventListener("pointercancel", () => { dragging = false; });
 });
 
 document.querySelectorAll(".dicon").forEach(icon => {
@@ -1290,6 +1313,8 @@ document.querySelectorAll(".dicon").forEach(icon => {
 let lastActivity = Date.now();
 function bumpActivity() { lastActivity = Date.now(); }
 ["pointermove", "pointerdown", "click", "touchstart"].forEach(ev => document.addEventListener(ev, bumpActivity));
+document.addEventListener("gesturestart", e => e.preventDefault());
+document.addEventListener("dblclick", e => e.preventDefault());
 setInterval(() => {
   const ss = document.getElementById("screensaver");
   if (Date.now() - lastActivity > 120000 && ss.style.display !== "block") {
