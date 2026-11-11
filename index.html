@@ -12,21 +12,57 @@
     --ok: #22c55e; --warn: #f59e0b; --bad: #ef4444; --purple: #a855f7;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
-  body { background: var(--bg); color: var(--text); padding: 16px; min-height: 100vh; }
+  body { min-height: 100vh; color: var(--text); transition: background 1.2s ease; }
+  body.phase-1 {
+    background:
+      radial-gradient(ellipse at 50% 0%, rgba(255,170,60,.10), transparent 55%),
+      repeating-linear-gradient(90deg, rgba(255,255,255,.015) 0 2px, transparent 2px 90px),
+      linear-gradient(180deg, #171a20 0%, #0b0d11 100%);
+  }
+  body.phase-2 {
+    background:
+      repeating-linear-gradient(90deg, rgba(56,189,248,.05) 0 3px, transparent 3px 60px),
+      radial-gradient(ellipse at 50% 100%, rgba(56,189,248,.08), transparent 60%),
+      linear-gradient(180deg, #0d1626 0%, #080d18 100%);
+  }
+  body.phase-3 {
+    background:
+      repeating-linear-gradient(90deg, rgba(168,85,247,.06) 0 4px, transparent 4px 48px),
+      radial-gradient(ellipse at 50% 50%, rgba(168,85,247,.10), transparent 65%),
+      linear-gradient(180deg, #150d2b 0%, #0a0618 100%);
+  }
+  #wallpaper {
+    position: fixed; inset: 0; z-index: 0; pointer-events: none;
+    display: flex; align-items: center; justify-content: center;
+  }
+  #wallpaperEmoji { font-size: min(45vw, 420px); opacity: .06; filter: grayscale(30%); user-select: none; }
+  #desktop { position: relative; z-index: 1; padding: 14px 14px 74px; }
   .container { max-width: 1100px; margin: 0 auto; }
   header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;
-    background: var(--card); border: 1px solid var(--border); padding: 16px 20px; border-radius: 12px; margin-bottom: 16px; }
+    background: rgba(30,41,59,.92); border: 1px solid var(--border); padding: 16px 20px; border-radius: 14px;
+    margin-bottom: 14px; box-shadow: 0 8px 24px rgba(0,0,0,.45); backdrop-filter: blur(6px); }
   h1 { font-size: 1.5rem; color: var(--accent); }
   .phase-badge { background: rgba(56,189,248,.1); border: 1px solid var(--accent); color: var(--accent);
     padding: 6px 14px; border-radius: 20px; font-weight: 600; font-size: .9rem; }
-  .dashboard { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 16px; }
-  .stat { background: var(--card); border: 1px solid var(--border); padding: 12px; border-radius: 10px; text-align: center; }
+  .dashboard { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 14px; }
+  .stat { background: rgba(30,41,59,.92); border: 1px solid var(--border); padding: 12px; border-radius: 10px;
+    text-align: center; box-shadow: 0 4px 14px rgba(0,0,0,.35); backdrop-filter: blur(6px); }
   .stat h3 { font-size: .75rem; color: var(--muted); text-transform: uppercase; margin-bottom: 4px; }
   .stat .v { font-size: 1.25rem; font-weight: 700; }
-  .grid { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; }
+  .grid { display: grid; grid-template-columns: 2fr 1fr; gap: 14px; }
   @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } }
-  .panel { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 16px 20px; margin-bottom: 16px; }
-  .panel h2 { font-size: 1.05rem; color: var(--purple); border-bottom: 1px solid var(--border); padding-bottom: 8px; margin-bottom: 12px; }
+  .panel { background: rgba(30,41,59,.92); border: 1px solid var(--border); border-radius: 14px;
+    padding: 0 16px 16px; margin-bottom: 14px; box-shadow: 0 10px 28px rgba(0,0,0,.5); backdrop-filter: blur(6px); }
+  .panel h2 { display: flex; align-items: center; font-size: 1rem; color: var(--text);
+    border-bottom: 1px solid var(--border); padding: 12px 0 10px; margin-bottom: 12px; }
+  .panel h2::before {
+    content: ""; display: inline-block; width: 40px; height: 12px; margin-right: 10px; flex-shrink: 0;
+    background:
+      radial-gradient(circle at 6px 6px, #ff5f57 4px, transparent 4.5px),
+      radial-gradient(circle at 20px 6px, #febc2e 4px, transparent 4.5px),
+      radial-gradient(circle at 34px 6px, #28c840 4px, transparent 4.5px);
+  }
+  .panel .panel-body { padding: 0 4px; }
   .row { display: flex; justify-content: space-between; align-items: center; gap: 10px;
     background: rgba(255,255,255,.03); border: 1px solid var(--border); padding: 10px 12px; border-radius: 8px; margin-bottom: 8px; flex-wrap: wrap; }
   .row .info h4 { font-size: .95rem; } .row .info p { font-size: .8rem; color: var(--muted); }
@@ -43,14 +79,49 @@
     height: 200px; overflow-y: auto; font-family: ui-monospace, monospace; font-size: .78rem; color: var(--accent); }
   .log div { padding: 2px 0; border-bottom: 1px dashed rgba(255,255,255,.06); }
   .log .ev { color: var(--warn); } .log .bad { color: var(--bad); } .log .good { color: var(--ok); }
-  .modal { position: fixed; inset: 0; background: rgba(0,0,0,.75); display: none; align-items: center; justify-content: center; z-index: 10; }
+  .modal { position: fixed; inset: 0; background: rgba(0,0,0,.75); display: none; align-items: center; justify-content: center; z-index: 40; }
   .modal .box { background: var(--card); border: 1px solid var(--accent); border-radius: 12px; padding: 28px; max-width: 420px; text-align: center; }
   .modal h2 { color: var(--accent); margin-bottom: 10px; }
   .mdl { display: flex; gap: 6px; flex-wrap: wrap; margin: 8px 0; }
   .mdl button.sel { outline: 2px solid var(--purple); }
+
+  #taskbar {
+    position: fixed; bottom: 0; left: 0; right: 0; height: 54px; z-index: 30;
+    display: flex; align-items: center; gap: 10px; padding: 0 12px;
+    background: rgba(2,6,23,.88); border-top: 1px solid var(--border); backdrop-filter: blur(10px);
+  }
+  #startMenuBtn {
+    display: flex; align-items: center; gap: 8px; font-weight: 700;
+    background: linear-gradient(90deg, #38bdf8, #a855f7); color: #06102a;
+    padding: 9px 18px; border-radius: 8px;
+  }
+  .tb-item { font-size: .85rem; color: var(--muted); padding: 6px 12px; border-radius: 8px;
+    background: rgba(255,255,255,.04); border: 1px solid var(--border); white-space: nowrap; }
+  #tbPhase { color: var(--accent); font-weight: 600; }
+  .tb-spacer { flex: 1; }
+  .tb-btn { background: rgba(255,255,255,.05); color: var(--text); border: 1px solid var(--border);
+    width: 40px; height: 38px; font-size: 17px; padding: 0; border-radius: 8px; }
+  .tb-btn:hover { background: rgba(56,189,248,.15); }
+  #tbClock { font-variant-numeric: tabular-nums; }
+
+  #startMenu {
+    position: fixed; bottom: 62px; left: 12px; width: 250px; z-index: 35;
+    background: rgba(2,6,23,.96); border: 1px solid var(--accent); border-radius: 14px;
+    padding: 10px; box-shadow: 0 16px 48px rgba(0,0,0,.6);
+  }
+  #startMenu .sm-head { font-size: .78rem; color: var(--muted); text-transform: uppercase;
+    letter-spacing: 1px; padding: 6px 10px 10px; }
+  .sm-item { display: flex; align-items: center; gap: 10px; width: 100%; text-align: left;
+    background: transparent; color: var(--text); border: none; padding: 11px 12px;
+    border-radius: 8px; font-size: .9rem; cursor: pointer; }
+  .sm-item:hover { background: rgba(56,189,248,.12); }
+  .hidden { display: none !important; }
 </style>
 </head>
-<body>
+<body class="phase-1">
+<div id="wallpaper"><div id="wallpaperEmoji">🔧</div></div>
+
+<div id="desktop">
 <div class="container">
   <header>
     <div>
@@ -72,17 +143,20 @@
   <div class="grid">
     <div>
       <div class="panel">
-        <h2>1. Arbeit &amp; Aufträge</h2>
+        <h2>Arbeit &amp; Aufträge</h2>
+        <div class="panel-body">
         <div class="row">
           <div class="info"><h4>Freelance-Arbeit</h4><p>Manuell Daten bereinigen (+€50, +1 Reputation alle 5 Jobs)</p></div>
           <button onclick="work()">Arbeiten</button>
         </div>
         <div id="contractList"></div>
         <button class="small" onclick="refreshContracts(true)">Neue Aufträge suchen (€100)</button>
+        </div>
       </div>
 
       <div class="panel">
-        <h2>2. Hardware &amp; Infrastruktur</h2>
+        <h2>Hardware &amp; Infrastruktur</h2>
+        <div class="panel-body">
         <div id="hardwareList"></div>
         <div class="row">
           <div class="info"><h4>Stromnetz ausbauen</h4><p id="powerInfo">+500 kW Kapazität — Preis: €2.000</p></div>
@@ -92,10 +166,12 @@
           <div class="info"><h4>Cloud mieten</h4><p>+25 Compute — kostet €150 / Tag (an/aus)</p></div>
           <button id="cloudBtn" onclick="toggleCloud()">Mieten</button>
         </div>
+        </div>
       </div>
 
       <div class="panel">
-        <h2>3. F&E — Modelltraining</h2>
+        <h2>F&amp;E — Modelltraining</h2>
+        <div class="panel-body">
         <div class="row">
           <div class="info">
             <h4>Modell-Typ wählen</h4>
@@ -106,38 +182,61 @@
         </div>
         <button id="trainBtn" onclick="startTraining()">Training starten</button>
         <div id="modelList" style="margin-top:10px"></div>
+        </div>
       </div>
 
       <div class="panel" id="staffPanel" style="display:none">
-        <h2>4. Personal (Phase 2+)</h2>
-        <div id="staffList"></div>
+        <h2>Personal (Phase 2+)</h2>
+        <div class="panel-body"><div id="staffList"></div></div>
       </div>
 
       <div class="panel" id="agiPanel" style="display:none">
-        <h2>5. 🏆 AGI-Projekt (Phase 3)</h2>
+        <h2>🏆 AGI-Projekt (Phase 3)</h2>
+        <div class="panel-body">
         <p style="font-size:.9rem;color:var(--muted);margin-bottom:10px">
           Benötigt: 2 Frontier-Modelle (Qualität ≥ 100), 500 Compute, €1.000.000.</p>
         <button id="agiBtn" onclick="buildAGI()">AGI entwickeln</button>
+        </div>
       </div>
     </div>
 
     <div>
       <div class="panel">
         <h2>Ereignis-Log</h2>
-        <div class="log" id="logBox"></div>
+        <div class="panel-body"><div class="log" id="logBox"></div></div>
       </div>
       <div class="panel">
         <h2>Nächster Meilenstein</h2>
+        <div class="panel-body">
         <p id="milestoneText" style="font-size:.85rem;color:var(--muted);margin-bottom:8px"></p>
         <div class="bar"><div id="milestoneBar" style="background:var(--purple)"></div></div>
+        </div>
       </div>
       <div class="panel">
         <h2>Statistik</h2>
+        <div class="panel-body">
         <p style="font-size:.85rem;color:var(--muted)" id="statsBox"></p>
         <button class="small" onclick="resetGame()" style="margin-top:10px;background:var(--bad);color:#fff">Spiel zurücksetzen</button>
+        </div>
       </div>
     </div>
   </div>
+</div>
+</div>
+
+<div id="taskbar">
+  <button id="startMenuBtn">🪟 Start</button>
+  <div class="tb-item" id="tbPhase">Phase 1: Die Garage</div>
+  <div class="tb-spacer"></div>
+  <button class="tb-btn" id="fsBtn" title="Vollbild (F)">⛶</button>
+  <div class="tb-item" id="tbClock">Tag 1</div>
+</div>
+
+<div id="startMenu" class="hidden">
+  <div class="sm-head">AI Empire — Menü</div>
+  <button class="sm-item" id="smNew">🔄 Neues Spiel</button>
+  <button class="sm-item" id="smFullscreen">⛶ Vollbild an/aus</button>
+  <button class="sm-item" id="smAbout">ℹ️ Über das Spiel</button>
 </div>
 
 <div class="modal" id="modal">
@@ -526,6 +625,10 @@ function render() {
   document.getElementById("statsBox").innerHTML =
     "GPUs: " + S.gpus + " | Kühlung: Stufe " + S.cooling + "<br>Modelle: " + Object.keys(S.models).length +
     " | Reputation: " + S.rep + "<br>Preis-Modifikator: " + Math.round(S.priceMod*100) + "% | GPU-Preise: " + Math.round(S.gpuMod*100) + "%";
+
+  document.body.className = "phase-" + S.phase;
+  document.getElementById("tbPhase").textContent = PHASES[S.phase-1].name;
+  document.getElementById("wallpaperEmoji").textContent = ["🔧", "🏢", "🌐"][S.phase-1];
 }
 
 function hire(id) {
@@ -545,9 +648,52 @@ function init() {
   render();
 }
 
+// ---------- Desktop-Shell ----------
+function toggleFullscreen() {
+  try {
+    if (document.fullscreenElement) document.exitFullscreen();
+    else document.documentElement.requestFullscreen();
+  } catch (e) {}
+}
+function updateClock() {
+  const now = new Date();
+  const time = String(now.getHours()).padStart(2, "0") + ":" + String(now.getMinutes()).padStart(2, "0");
+  document.getElementById("tbClock").textContent = "Tag " + S.day + " · " + time;
+}
+setInterval(updateClock, 1000);
+
+document.getElementById("fsBtn").addEventListener("click", toggleFullscreen);
+document.getElementById("smFullscreen").addEventListener("click", () => {
+  document.getElementById("startMenu").classList.add("hidden");
+  toggleFullscreen();
+});
+document.getElementById("smNew").addEventListener("click", () => {
+  document.getElementById("startMenu").classList.add("hidden");
+  resetGame();
+});
+document.getElementById("smAbout").addEventListener("click", () => {
+  document.getElementById("startMenu").classList.add("hidden");
+  modal("🤖 AI Empire", "Baue dein KI-Unternehmen von der Garage bis zur AGI: Aufträge erfüllen, Hardware kaufen, Modelle trainieren, Personal einstellen. Der Spielstand wird automatisch gespeichert. (Vollbild: Taste F oder ⛶ in der Taskleiste)");
+});
+document.getElementById("startMenuBtn").addEventListener("click", e => {
+  e.stopPropagation();
+  document.getElementById("startMenu").classList.toggle("hidden");
+});
+document.addEventListener("click", e => {
+  const menu = document.getElementById("startMenu");
+  if (!menu.classList.contains("hidden") && !menu.contains(e.target) && e.target.id !== "startMenuBtn") {
+    menu.classList.add("hidden");
+  }
+});
+window.addEventListener("keydown", e => {
+  if (e.key === "f" || e.key === "F") toggleFullscreen();
+  if (e.key === "Escape") document.getElementById("startMenu").classList.add("hidden");
+});
+
 if (!load()) { S = freshState(); init(); }
 else { log("Spielstand geladen — weiter geht's!", "good"); render(); }
 setInterval(gameTick, 3000);
+updateClock();
 </script>
 </body>
 </html>
