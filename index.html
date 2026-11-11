@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Empire: From Garage to AGi</title>
+<style>
+  :root {
+    --bg: #0b0f19; --card: #1e293b; --border: #334155;
+    --text: #f8fafc; --muted: #94a3b8;
+    --accent: #38bdf8; --accent-h: #0284c7;
+    --ok: #22c55e; --warn: #f59e0b; --bad: #ef4444; --purple: #a855f7;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  body { background: var(--bg); color: var(--text); padding: 16px; min-height: 100vh; }
+  .container { max-width: 1100px; margin: 0 auto; }
+  header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;
+    background: var(--card); border: 1px solid var(--border); padding: 16px 20px; border-radius: 12px; margin-bottom: 16px; }
+  h1 { font-size: 1.5rem; color: var(--accent); }
+  .phase-badge { background: rgba(56,189,248,.1); border: 1px solid var(--accent); color: var(--accent);
+    padding: 6px 14px; border-radius: 20px; font-weight: 600; font-size: .9rem; }
+  .dashboard { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 16px; }
+  .stat { background: var(--card); border: 1px solid var(--border); padding: 12px; border-radius: 10px; text-align: center; }
+  .stat h3 { font-size: .75rem; color: var(--muted); text-transform: uppercase; margin-bottom: 4px; }
+  .stat .v { font-size: 1.25rem; font-weight: 700; }
+  .grid { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; }
+  @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } }
+  .panel { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 16px 20px; margin-bottom: 16px; }
+  .panel h2 { font-size: 1.05rem; color: var(--purple); border-bottom: 1px solid var(--border); padding-bottom: 8px; margin-bottom: 12px; }
+  .row { display: flex; justify-content: space-between; align-items: center; gap: 10px;
+    background: rgba(255,255,255,.03); border: 1px solid var(--border); padding: 10px 12px; border-radius: 8px; margin-bottom: 8px; flex-wrap: wrap; }
+  .row .info h4 { font-size: .95rem; } .row .info p { font-size: .8rem; color: var(--muted); }
+  button { background: var(--accent); color: var(--bg); border: none; padding: 8px 14px; font-weight: 700;
+    border-radius: 6px; cursor: pointer; font-size: .85rem; }
+  button:hover { background: var(--accent-h); }
+  button:disabled { background: var(--border); color: var(--muted); cursor: not-allowed; }
+  button.small { padding: 5px 10px; font-size: .78rem; }
+  .tag { display: inline-block; font-size: .7rem; padding: 2px 8px; border-radius: 10px; border: 1px solid var(--border); color: var(--muted); margin-left: 6px; }
+  .tag.g { color: var(--ok); border-color: var(--ok); } .tag.r { color: var(--bad); border-color: var(--bad); }
+  .bar { background: var(--border); border-radius: 4px; height: 8px; overflow: hidden; margin-top: 6px; }
+  .bar > div { height: 100%; background: var(--ok); width: 0%; transition: width .3s; }
+  .log { background: #020617; border: 1px solid var(--border); border-radius: 8px; padding: 10px;
+    height: 200px; overflow-y: auto; font-family: ui-monospace, monospace; font-size: .78rem; color: var(--accent); }
+  .log div { padding: 2px 0; border-bottom: 1px dashed rgba(255,255,255,.06); }
+  .log .ev { color: var(--warn); } .log .bad { color: var(--bad); } .log .good { color: var(--ok); }
+  .modal { position: fixed; inset: 0; background: rgba(0,0,0,.75); display: none; align-items: center; justify-content: center; z-index: 10; }
+  .modal .box { background: var(--card); border: 1px solid var(--accent); border-radius: 12px; padding: 28px; max-width: 420px; text-align: center; }
+  .modal h2 { color: var(--accent); margin-bottom: 10px; }
+  .mdl { display: flex; gap: 6px; flex-wrap: wrap; margin: 8px 0; }
+  .mdl button.sel { outline: 2px solid var(--purple); }
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <div>
+      <h1>🤖 AI Empire: From Garage to AGi</h1>
+      <p style="color:var(--muted);font-size:.85rem">Management &amp; Tycoon Simulation — Tag <span id="day">1</span></p>
+    </div>
+    <div class="phase-badge" id="phaseBadge">Phase 1: Die Garage</div>
+  </header>
+
+  <div class="dashboard">
+    <div class="stat"><h3>Kapital</h3><div class="v" id="stMoney">€ 1.500</div></div>
+    <div class="stat"><h3>Compute</h3><div class="v" id="stCompute">0</div></div>
+    <div class="stat"><h3>Temperatur</h3><div class="v" id="stTemp">25 °C</div></div>
+    <div class="stat"><h3>Strom</h3><div class="v" id="stPower">0 / 500 kW</div></div>
+    <div class="stat"><h3>Reputation</h3><div class="v" id="stRep">0</div></div>
+    <div class="stat"><h3>API-Einkommen / Tag</h3><div class="v" id="stIncome">€ 0</div></div>
+  </div>
+
+  <div class="grid">
+    <div>
+      <div class="panel">
+        <h2>1. Arbeit &amp; Aufträge</h2>
+        <div class="row">
+          <div class="info"><h4>Freelance-Arbeit</h4><p>Manuell Daten bereinigen (+€50, +1 Reputation alle 5 Jobs)</p></div>
+          <button onclick="work()">Arbeiten</button>
+        </div>
+        <div id="contractList"></div>
+        <button class="small" onclick="refreshContracts(true)">Neue Aufträge suchen (€100)</button>
+      </div>
+
+      <div class="panel">
+        <h2>2. Hardware &amp; Infrastruktur</h2>
+        <div id="hardwareList"></div>
+        <div class="row">
+          <div class="info"><h4>Stromnetz ausbauen</h4><p id="powerInfo">+500 kW Kapazität — Preis: €2.000</p></div>
+          <button onclick="upgradePower()">Upgrade</button>
+        </div>
+        <div class="row" id="cloudRow" style="display:none">
+          <div class="info"><h4>Cloud mieten</h4><p>+25 Compute — kostet €150 / Tag (an/aus)</p></div>
+          <button id="cloudBtn" onclick="toggleCloud()">Mieten</button>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2>3. F&E — Modelltraining</h2>
+        <div class="row">
+          <div class="info">
+            <h4>Modell-Typ wählen</h4>
+            <div class="mdl" id="modelPicker"></div>
+            <p id="trainInfo">Wähle einen Typ und starte das Training.</p>
+            <div class="bar"><div id="trainBar"></div></div>
+          </div>
+        </div>
+        <button id="trainBtn" onclick="startTraining()">Training starten</button>
+        <div id="modelList" style="margin-top:10px"></div>
+      </div>
+
+      <div class="panel" id="staffPanel" style="display:none">
+        <h2>4. Personal (Phase 2+)</h2>
+        <div id="staffList"></div>
+      </div>
+
+      <div class="panel" id="agiPanel" style="display:none">
+        <h2>5. 🏆 AGI-Projekt (Phase 3)</h2>
+        <p style="font-size:.9rem;color:var(--muted);margin-bottom:10px">
+          Benötigt: 2 Frontier-Modelle (Qualität ≥ 100), 500 Compute, €1.000.000.</p>
+        <button id="agiBtn" onclick="buildAGI()">AGI entwickeln</button>
+      </div>
+    </div>
+
+    <div>
+      <div class="panel">
+        <h2>Ereignis-Log</h2>
+        <div class="log" id="logBox"></div>
+      </div>
+      <div class="panel">
+        <h2>Nächster Meilenstein</h2>
+        <p id="milestoneText" style="font-size:.85rem;color:var(--muted);margin-bottom:8px"></p>
+        <div class="bar"><div id="milestoneBar" style="background:var(--purple)"></div></div>
+      </div>
+      <div class="panel">
+        <h2>Statistik</h2>
+        <p style="font-size:.85rem;color:var(--muted)" id="statsBox"></p>
+        <button class="small" onclick="resetGame()" style="margin-top:10px;background:var(--bad);color:#fff">Spiel zurücksetzen</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal" id="modal">
+  <div class="box">
+    <h2 id="modalTitle"></h2>
+    <p id="modalText" style="font-size:.95rem;color:var(--muted);margin-bottom:16px"></p>
+    <button onclick="document.getElementById('modal').style.display='none'">Weiter</button>
+  </div>
+</div>
+
+<script>
+const MODELS = {
+  llm:   { name: "LLM (Text)",   base: 40,  need: 20,  cost: 2000 },
+  vision:{ name: "Vision",       base: 45,  need: 25,  cost: 3000 },
+  audio: { name: "Audio/Voice",  base: 50,  need: 30,  cost: 4500 },
+  code:  { name: "Code-Gen",     base: 60,  need: 40,  cost: 7000 },
+  agent: { name: "Agenten",      base: 80,  need: 60,  cost: 12000 }
+};
+const GPUS = [
+  { id:"gpu1", name:"Gebrauchte GTX 1080", compute:5,  power:150,  heat:5, price:800,   phase:1 },
+  { id:"gpu2", name:"RTX 4090",            compute:15, power:300,  heat:7, price:2500,  phase:1 },
+  { id:"gpu3", name:"Server-Rack (8× A100)",compute:80,power:2000, heat:12,price:40000, phase:2 },
+  { id:"gpu4", name:"H100 Cluster",        compute:250,power:5000, heat:18,price:150000,phase:3 },
+  { id:"gpu5", name:"Custom-ASIC Pod",     compute:800,power:9000, heat:20,price:500000,phase:3 }
+];
+const STAFF = [
+  { id:"ds",   name:"Data Scientist",  salary:200, desc:"+25% Trainingsgeschwindigkeit je Person" },
+  { id:"pe",   name:"Prompt Engineer", salary:150, desc:"+10% Auftragsverdienst je Person" },
+  { id:"admin",name:"Sysadmin",        salary:120, desc:"-3 °C Hitze je Person" },
+  { id:"mkt",  name:"Marketing",       salary:100, desc:"+20% API-Einkommen je Person" }
+];
+const PHASES = [
+  { name:"Phase 1: Die Garage",          goal:10000,   maxPower:500 },
+  { name:"Phase 2: Das Server-Büro",     goal:100000,  maxPower:6000 },
+  { name:"Phase 3: Hyperscale Data Center", goal:1000000, maxPower:30000 }
+];
+
+let S = null;
+function freshState() {
+  return {
+    money:1500, rep:0, phase:1, day:1,
+    compute:0, power:0, temp:25, cooling:1, gpus:0,
+    maxPowerBonus:0,
+    cloud:false, cloudUnits:0,
+    staff:{ds:0,pe:0,admin:0,mkt:0},
+    models:{}, training:null, selected:"llm",
+    contracts:[], active:[], workCount:0,
+    priceMod:1, incomeMod:1, gpuMod:1, modDays:0,
+    won:false
+  };
+}
+
+function save() { try { localStorage.setItem("aiEmpireSave", JSON.stringify(S)); } catch(e){} }
+function load() {
+  try { const d = localStorage.getItem("aiEmpireSave"); if (d) { S = Object.assign(freshState(), JSON.parse(d)); return true; } } catch(e){}
+  return false;
+}
+function resetGame() { if (confirm("Wirklich zurücksetzen?")) { localStorage.removeItem("aiEmpireSave"); S = freshState(); init(); } }
+
+function log(msg, cls) {
+  const box = document.getElementById("logBox");
+  const div = document.createElement("div");
+  if (cls) div.className = cls;
+  div.textContent = "[Tag " + S.day + "] " + msg;
+  box.appendChild(div);
+  box.scrollTop = box.scrollHeight;
+  while (box.children.length > 60) box.removeChild(box.firstChild);
+}
+function modal(title, text) {
+  document.getElementById("modalTitle").textContent = title;
+  document.getElementById("modalText").textContent = text;
+  document.getElementById("modal").style.display = "flex";
+}
+function fmt(n) { return "€ " + Math.round(n).toLocaleString("de-DE"); }
+
+function maxPower() { return PHASES[S.phase-1].maxPower + S.maxPowerBonus; }
+function computeTotal() { return S.compute + (S.cloud ? S.cloudUnits : 0); }
+function productIncome() {
+  let inc = 0;
+  for (const t in S.models) inc += S.models[t].quality * 3;
+  return inc * (1 + 0.2 * S.staff.mkt) * S.incomeMod;
+}
+function staffSalaries() {
+  return S.staff.ds*STAFF[0].salary + S.staff.pe*STAFF[1].salary + S.staff.admin*STAFF[2].salary + S.staff.mkt*STAFF[3].salary;
+}
+
+function newContract() {
+  const tier = S.phase;
+  const pool = [
+    { n:"Daten-Cleaning",       r:300*tier,   need:8,   dl:6 },
+    { n:"Chatbot für Shop",     r:600*tier,   need:15,  dl:8 },
+    { n:"Bildklassifizierung",  r:900*tier,   need:25,  dl:10 },
+    { n:"Sprachassistent",      r:1500*tier,  need:40,  dl:12 },
+    { n:"Code-Review-Bot",      r:2500*tier,  need:60,  dl:14 },
+    { n:"Enterprise-SLA-Vertrag",r:5000*tier, need:120, dl:16 }
+  ];
+  const c = pool[Math.floor(Math.random()*Math.min(pool.length, 2+tier*2))];
+  return Object.assign({}, c, { progress:0, left:c.dl });
+}
+
+function refreshContracts(paid) {
+  if (paid) { if (S.money < 100) return log("Zu wenig Kapital für Auftragssuche.", "bad"); S.money -= 100; }
+  S.contracts = [];
+  const count = 2 + S.phase;
+  for (let i=0;i<count;i++) S.contracts.push(newContract());
+}
+
+function acceptContract(i) {
+  const c = S.contracts[i];
+  if (!c) return;
+  if (computeTotal() < c.need) return log("Zu wenig Compute für '" + c.n + "' (" + c.need + " benötigt).", "bad");
+  S.active.push(c);
+  S.contracts.splice(i,1);
+  log("Auftrag angenommen: " + c.n);
+  render();
+}
+
+function work() {
+  S.money += 50;
+  S.workCount++;
+  if (S.workCount % 5 === 0) S.rep++;
+  render();
+}
+
+function buyHardware(id) {
+  const g = GPUS.find(x=>x.id===id);
+  const price = Math.round(g.price * S.gpuMod);
+  if (S.phase < g.phase) return log("Hardware erst ab " + PHASES[g.phase-1].name.split(":")[0] + " verfügbar.", "bad");
+  if (S.money < price) return log("Nicht genügend Kapital.", "bad");
+  if (S.power + g.power > maxPower()) return log("Stromnetz überlastet! Erst Stromnetz ausbauen.", "bad");
+  S.money -= price; S.compute += g.compute; S.power += g.power; S.gpus++;
+  log("Gekauft: " + g.name + " (+" + g.compute + " Compute)");
+  checkOverheat();
+  render();
+}
+function buyCooling() {
+  const price = 500 * S.cooling;
+  if (S.money < price) return log("Nicht genügend Kapital für Kühlung.", "bad");
+  S.money -= price; S.cooling++;
+  S.temp = Math.max(25, S.temp - 10);
+  log("Kühlung auf Stufe " + S.cooling + " verbessert.");
+  render();
+}
+function upgradePower() {
+  const price = 2000 * S.phase;
+  if (S.money < price) return log("Nicht genügend Kapital.", "bad");
+  S.money -= price;
+  S.maxPowerBonus += 500;
+  log("Stromnetz ausgebaut: +" + 500 + " kW Kapazität.");
+  render();
+}
+function toggleCloud() {
+  if (!S.cloud) { if (S.money < 150) return log("Zu wenig Kapital für Cloud-Miete.", "bad"); S.cloud = true; S.cloudUnits = 25; log("Cloud-Kapazität gemietet (+25 Compute)."); }
+  else { S.cloud = false; S.cloudUnits = 0; log("Cloud-Miete gekündigt."); }
+  render();
+}
+
+function pickModel(t) { S.selected = t; render(); }
+function startTraining() {
+  const m = MODELS[S.selected];
+  if (S.training) return;
+  if (computeTotal() < m.need) return log("Mindestens " + m.need + " Compute für " + m.name + " nötig.", "bad");
+  const cost = Math.round(m.cost * (1 + (S.models[S.selected] ? S.models[S.selected].level * 0.5 : 0)));
+  if (S.money < cost) return log("Training kostet " + fmt(cost) + " — zu wenig Kapital.", "bad");
+  S.money -= cost;
+  S.training = { type:S.selected, progress:0, cost };
+  log("Training '" + m.name + "' gestartet (" + fmt(cost) + ").");
+  render();
+}
+
+function tickTraining() {
+  if (!S.training) return;
+  const m = MODELS[S.training.type];
+  const dsBoost = 1 + 0.25 * S.staff.ds;
+  const speed = Math.min(20, (computeTotal() / m.need) * 4 * dsBoost);
+  S.training.progress = Math.min(100, S.training.progress + speed);
+  if (S.training.progress >= 100) {
+    const prev = S.models[S.training.type];
+    const level = prev ? prev.level + 1 : 1;
+    const quality = Math.min(120, m.base * (1 + (level-1) * 0.35) + Math.random()*8);
+    S.models[S.training.type] = { level, quality };
+    S.rep += 3;
+    log("Training abgeschlossen: " + m.name + " v" + level + " (Qualität " + Math.round(quality) + ").", "good");
+    S.training = null;
+  }
+}
+
+function tickContracts() {
+  for (let i = S.active.length-1; i >= 0; i--) {
+    const c = S.active[i];
+    c.progress += Math.min(25, (computeTotal() / c.need) * 12);
+    c.left--;
+    if (c.progress >= 100) {
+      const pay = Math.round(c.r * (1 + 0.1*S.staff.pe) * S.priceMod);
+      S.money += pay; S.rep += 2;
+      log("Auftrag fertig: " + c.n + " (+" + fmt(pay) + ")", "good");
+      S.active.splice(i,1);
+    } else if (c.left <= 0) {
+      S.rep = Math.max(0, S.rep - 5);
+      S.money = Math.max(0, S.money - Math.round(c.r*0.3));
+      log("SLA verletzt: " + c.n + " — Strafzahlung, Reputation -5.", "bad");
+      S.active.splice(i,1);
+    }
+  }
+}
+
+function randomEvent() {
+  const evs = [
+    () => { S.priceMod = 0.7; S.modDays = 10; log("EVENT: Open-Source-Durchbruch! Auftragspreise -30% für 10 Tage.", "ev"); },
+    () => { const fine = 2000 * S.phase; S.money = Math.max(0, S.money - fine); log("EVENT: Neue KI-Gesetze — Compliance-Audit kostet " + fmt(fine) + ".", "bad"); },
+    () => { S.incomeMod = 0.6; S.modDays = 8; S.rep = Math.max(0, S.rep-4); log("EVENT: Halluzinations-Skandal in den Medien! API-Einkommen -40%, Reputation -4.", "bad"); },
+    () => { S.gpuMod = 1.5; S.modDays = 12; log("EVENT: Chip-Lieferkettenengpass — Hardware +50% teurer für 12 Tage.", "ev"); },
+    () => { S.temp += 12; log("EVENT: Hitzewelle! Temperatur +12 °C.", "ev"); checkOverheat(); },
+    () => { S.money += 500 * S.phase; log("EVENT: Dein Modell geht viral! +€" + (500*S.phase) + " Spende/Einnahmen.", "good"); }
+  ];
+  evs[Math.floor(Math.random()*evs.length)]();
+}
+
+function checkOverheat() {
+  if (S.temp >= 75) {
+    const penalty = 200 * S.phase;
+    S.money = Math.max(0, S.money - penalty);
+    S.temp = 50;
+    log("ÜBERHITZUNG! Hardware beschädigt: -" + fmt(penalty), "bad");
+  }
+}
+
+function checkPhase() {
+  const p = PHASES[S.phase-1];
+  if (S.money >= p.goal && S.phase < 3) {
+    S.phase++;
+    S.maxPowerBonus = 0;
+    S.rep += 10;
+    log("MEILENSTEIN: " + PHASES[S.phase-1].name + " erreicht!", "good");
+    modal("Neue Phase!", "Willkommen in " + PHASES[S.phase-1].name + ". Neue Hardware, Personal, Cloud und größere Aufträge sind jetzt verfügbar.");
+  }
+}
+
+function buildAGI() {
+  const frontier = Object.values(S.models).filter(m => m.quality >= 100).length;
+  if (frontier < 2) return log("Du brauchst 2 Frontier-Modelle (Qualität ≥ 100).", "bad");
+  if (computeTotal() < 500) return log("Du brauchst 500 Compute.", "bad");
+  if (S.money < 1000000) return log("Du brauchst €1.000.000.", "bad");
+  S.won = true;
+  modal("🏆 AGI erreicht!", "Nach unzähligen Nächten in der Garage, Serverräumen und Rechenzentren: Dein Unternehmen hat Artificial General Intelligence entwickelt. Du bist der Tech-Gigant, der du werden wolltest!");
+  log("AGI ERSCHLIESSUNG ERFOLGREICH. Das Spiel ist gewonnen — du kannst weiterspielen.", "good");
+}
+
+function gameTick() {
+  S.day++;
+  if (S.modDays > 0) { S.modDays--; if (S.modDays === 0) { S.priceMod = 1; S.incomeMod = 1; S.gpuMod = 1; log("Markteffekte abgeklungen — Preise normalisieren sich."); } }
+  S.money += productIncome();
+  S.money -= staffSalaries();
+  if (S.cloud) { if (S.money >= 150) S.money -= 150; else { S.cloud = false; S.cloudUnits = 0; log("Cloud-Miete nicht bezahlbar — gekündigt.", "bad"); } }
+  const heat = S.gpus * 2 - S.cooling * 3 - S.staff.admin * 3;
+  S.temp = Math.max(25, S.temp + heat);
+  checkOverheat();
+  tickTraining();
+  tickContracts();
+  if (S.day % 15 === 0 && Math.random() < 0.6) randomEvent();
+  if (S.contracts.length < 2 + S.phase) S.contracts.push(newContract());
+  checkPhase();
+  save();
+  render();
+}
+
+function render() {
+  document.getElementById("day").textContent = S.day;
+  document.getElementById("phaseBadge").textContent = PHASES[S.phase-1].name;
+  document.getElementById("stMoney").textContent = fmt(S.money);
+  document.getElementById("stCompute").textContent = computeTotal() + (S.cloud ? " (+Cloud)" : "");
+  const t = document.getElementById("stTemp");
+  t.textContent = Math.round(S.temp) + " °C";
+  t.style.color = S.temp > 60 ? "var(--bad)" : S.temp > 45 ? "var(--warn)" : "var(--text)";
+  document.getElementById("stPower").textContent = S.power + " / " + maxPower() + " kW";
+  document.getElementById("stRep").textContent = S.rep;
+  document.getElementById("stIncome").textContent = fmt(productIncome()) + " − " + fmt(staffSalaries());
+
+  document.getElementById("cloudRow").style.display = S.phase >= 2 ? "flex" : "none";
+  document.getElementById("cloudBtn").textContent = S.cloud ? "Kündigen" : "Mieten";
+  document.getElementById("powerInfo").textContent = "+500 kW Kapazität — Preis: " + fmt(2000 * S.phase);
+
+  const hw = document.getElementById("hardwareList");
+  hw.innerHTML = "";
+  GPUS.forEach(g => {
+    if (g.phase > S.phase) return;
+    const price = Math.round(g.price * S.gpuMod);
+    const row = document.createElement("div");
+    row.className = "row";
+    row.innerHTML = "<div class='info'><h4>" + g.name + "</h4><p>+" + g.compute + " Compute | +" + g.power + " kW | +" + g.heat + " °C</p></div>";
+    const b = document.createElement("button");
+    b.textContent = fmt(price);
+    b.onclick = () => buyHardware(g.id);
+    row.appendChild(b);
+    hw.appendChild(row);
+  });
+  const cool = document.createElement("div");
+  cool.className = "row";
+  cool.innerHTML = "<div class='info'><h4>Kühlung (Stufe " + S.cooling + ")</h4><p>-10 °C sofort, dauerhaft -3 °C/Tick je Stufe</p></div>";
+  const cb = document.createElement("button");
+  cb.textContent = fmt(500 * S.cooling);
+  cb.onclick = buyCooling;
+  cool.appendChild(cb);
+  hw.appendChild(cool);
+
+  const cl = document.getElementById("contractList");
+  cl.innerHTML = "";
+  S.contracts.forEach((c,i) => {
+    const row = document.createElement("div");
+    row.className = "row";
+    row.innerHTML = "<div class='info'><h4>" + c.n + "</h4><p>Belohnung: " + fmt(c.r * S.priceMod) + " | " + c.need + " Compute | Frist: " + c.left + " Tage</p></div>";
+    const b = document.createElement("button");
+    b.textContent = "Annehmen";
+    b.onclick = () => acceptContract(i);
+    row.appendChild(b);
+    cl.appendChild(row);
+  });
+  if (S.active.length) {
+    const h = document.createElement("p");
+    h.style.cssText = "font-size:.8rem;color:var(--muted);margin:8px 0 4px";
+    h.textContent = "Laufende Aufträge:";
+    cl.appendChild(h);
+    S.active.forEach(c => {
+      const row = document.createElement("div");
+      row.className = "row";
+      row.innerHTML = "<div class='info'><h4>" + c.n + " <span class='tag " + (c.left < 3 ? "r" : "g") + "'>" + c.left + " Tage</span></h4><p>" + Math.round(c.progress) + "% erledigt</p><div class='bar'><div style='width:" + c.progress + "%'></div></div></div>";
+      cl.appendChild(row);
+    });
+  }
+
+  const mp = document.getElementById("modelPicker");
+  mp.innerHTML = "";
+  Object.keys(MODELS).forEach(t => {
+    const b = document.createElement("button");
+    b.className = "small" + (S.selected === t ? " sel" : "");
+    b.textContent = MODELS[t].name;
+    b.onclick = () => pickModel(t);
+    mp.appendChild(b);
+  });
+  const m = MODELS[S.selected];
+  const lvl = S.models[S.selected] ? S.models[S.selected].level : 0;
+  const cost = Math.round(m.cost * (1 + lvl * 0.5));
+  document.getElementById("trainInfo").textContent = m.name + " | Kosten: " + fmt(cost) + " | " + m.need + " Compute" + (lvl ? " | Aktuell: v" + lvl : "");
+  document.getElementById("trainBar").style.width = (S.training ? S.training.progress : 0) + "%";
+  document.getElementById("trainBtn").disabled = !!S.training;
+  document.getElementById("trainBtn").textContent = S.training ? "Training läuft…" : "Training starten";
+
+  const ml = document.getElementById("modelList");
+  ml.innerHTML = "";
+  Object.keys(S.models).forEach(t => {
+    const mm = S.models[t];
+    const row = document.createElement("div");
+    row.className = "row";
+    row.innerHTML = "<div class='info'><h4>" + MODELS[t].name + " v" + mm.level + (mm.quality >= 100 ? " <span class='tag g'>Frontier</span>" : "") + "</h4><p>Qualität: " + Math.round(mm.quality) + " / 120</p></div>";
+    ml.appendChild(row);
+  });
+
+  document.getElementById("staffPanel").style.display = S.phase >= 2 ? "block" : "none";
+  if (S.phase >= 2) {
+    const sl = document.getElementById("staffList");
+    sl.innerHTML = "";
+    STAFF.forEach(s => {
+      const row = document.createElement("div");
+      row.className = "row";
+      row.innerHTML = "<div class='info'><h4>" + s.name + " × " + S.staff[s.id] + "</h4><p>" + s.desc + " | Gehalt: " + fmt(s.salary) + "/Tag</p></div>";
+      const b = document.createElement("button");
+      b.textContent = "Einstellen (" + fmt(s.salary*10) + ")";
+      b.onclick = () => hire(s.id);
+      row.appendChild(b);
+      sl.appendChild(row);
+    });
+  }
+
+  document.getElementById("agiPanel").style.display = S.phase >= 3 ? "block" : "none";
+  if (S.phase >= 3) {
+    const fr = Object.values(S.models).filter(x => x.quality >= 100).length;
+    document.getElementById("agiBtn").disabled = fr < 2 || computeTotal() < 500 || S.money < 1000000;
+  }
+
+  const p = PHASES[S.phase-1];
+  document.getElementById("milestoneText").textContent =
+    S.phase < 3 ? "Ziel: " + fmt(p.goal) + " Kapital → " + PHASES[S.phase].name :
+    "Ziel: " + fmt(p.goal) + " Kapital + 2 Frontier-Modelle → AGI";
+  document.getElementById("milestoneBar").style.width = Math.min(100, S.money / p.goal * 100) + "%";
+
+  document.getElementById("statsBox").innerHTML =
+    "GPUs: " + S.gpus + " | Kühlung: Stufe " + S.cooling + "<br>Modelle: " + Object.keys(S.models).length +
+    " | Reputation: " + S.rep + "<br>Preis-Modifikator: " + Math.round(S.priceMod*100) + "% | GPU-Preise: " + Math.round(S.gpuMod*100) + "%";
+}
+
+function hire(id) {
+  const s = STAFF.find(x=>x.id===id);
+  const fee = s.salary * 10;
+  if (S.money < fee) return log("Einstellungsgebühr (" + fmt(fee) + ") nicht bezahlbar.", "bad");
+  S.money -= fee;
+  S.staff[id]++;
+  log(s.name + " eingestellt (#" + S.staff[id] + ").");
+  render();
+}
+
+function init() {
+  document.getElementById("logBox").innerHTML = "";
+  log("Willkommen in deiner Garage! Kaufe GPUs, erledige Aufträge — und baue dein KI-Imperium.");
+  refreshContracts(false);
+  render();
+}
+
+if (!load()) { S = freshState(); init(); }
+else { log("Spielstand geladen — weiter geht's!", "good"); render(); }
+setInterval(gameTick, 3000);
+</script>
+</body>
+</html>
